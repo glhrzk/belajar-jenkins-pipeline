@@ -1,0 +1,171 @@
+Jenkins pipeline
+jenkins pipeline adalah plugin yang mendukung pembuatan continous delivery pipeline di jenkins.
+continous delivery pipeline adalah perintah perintah yang dibuat agar software yang kita buat bisa di deliver ke pengguna, dari mulai version control sampai deployment.
+pipeline menyediakan peralatan untuk mempermudah proses tersebut, dari yang sederhana sampai yang kompleks menggunakan sintaks DSL
+rujukan: https://www.jenkins.io/doc/book/getting-started/
+
+================[ PIPELINE CONCEPT ]================
+Pipeline
+pipeline adalah definisi kode continous delivery.
+sebuah pipeline berifikan seluruh instruksi kode perintah untuk proses continous delivery, misalkan compile;testing;deploy dll.
+menggunakan kata kuncil pipeline
+
+Agent
+agent adalah machine/server bagian dari jenkins yang digunakan untuk mengeksekusi pipeline.
+menggunakan kata kunci agent
+
+Stage
+adalah blok definisi tugas atau tahapan dalam pipeline, misal; "Build", "Test", "Deploy" dll.
+stage ditampilkan di Jenkins seperti tahapan progress dari pipeline.
+menggunakan kata kunci agent
+
+Step
+step adalah sebuah instruksi atau perintah.
+step pada dasarnya adalah perintah atau instruksi apa yang harus dilakuka oleh Jenkins.
+step dilakukan/diisolasi dalam stage.
+menggunakan kata kunci step.
+
+Jenkinsfile
+bisa di ibaratkan dengan Dockerfile, semua konfigurasi pipeline disimpan disini.
+================[  END PIPELINE CONCEPT ]================
+
+
+================[ OBJECT-OBJECT PIPELINE ]================
+Agent Value
+    any = agent manapun
+    none = hanya di jalankan di master
+    label = agent yang memiliki label yang sudah ditentukan
+    node = sama seperti label, tetapi bisa mengubah workspace lokasi folder secara custom.
+    docker = akan dijalankan di docker container
+    dockerfile = sama seperti docker, tetapi imagenya dibuat dari dockerfile
+    kubernetes = dijalan di k8s cluster.
+
+Post
+post merupakan bagian steps terakhir, misalkan ingin mengirim notifikasi ketika build selesai dilakukan.
+    always = apapun kondisinya, akan dilakukan.
+    changed = jika status pipeline berubah dari build sebelumnya, contoh dari sukses ke erorr.
+    fixed = kebalikan dari changed.
+    regression = sama seperti changed.
+    aborted = jika pipeline dibatalkan secara manual.
+    failure = jika status pipeline error.
+    success = jika status pipeline sukses.
+    cleanup = selalu dijalankan, dengan catatan setelah kondisi salah satu steps diatas dilakukan.
+
+Stages
+berisikan detail dari tahapan dalam continous integrations yang kita buat di pipeline.
+contoh stage: Build, Test, Deploy dll.
+stage akan dijalankan berurutan secara sequential, jika terdapat error dalam stage, maka stage selanjutnya tidak akan di execute dan akan langsung masuk ke bagian post.
+
+Steps
+- Basic Steps (plugin otomatis download)
+    ketika menggunakan plugin pipeline, secara otomatis pluigin pipeline akan mendownload dan menggunakan basic steps sebagai rujukan perintahnya.
+    rujukan: https://www.jenkins.io/doc/pipeline/steps/workflow-basic-steps/#pipeline-basic-steps
+- Node and Process Steps (plugin otomatis download)
+    salah satu steps yang sering digunakan adalah node and process steps.
+    steps ini digunakan ketika ingin menjalankan atau mengeksekusi perintah terminal; shell script(unix), cmd(windows).
+    rujukan: https://www.jenkins.io/doc/pipeline/steps/workflow-durable-task-step/#pipeline-nodes-and-processes
+- Script
+    secara default jika kita menambahkan kode/bahasa Groovy langsung di steps akan terjadi error.
+    kita bisa menggunakan tag script, dan memasukan kode/bahasa Groovy di dalam tag script tersebut; contoh jika ingin melakukan perulangan dll.
+- Utility Step (plugin tidak otomatis download)
+    plugin yang berisikan utility yang bisa mempermudah pembuatan pipeline.
+    contoh: membaca file, membuat/mengectract archive, membuat hash, membaca/menulis json.
+    rujukan: https://www.jenkins.io/doc/pipeline/steps/pipeline-utility-steps/
+- Other Step (plugin)
+    Plugin-plugin yang tersedia yang bisa digunakan untuk mempermudah pembuatan pipeline.
+    https://www.jenkins.io/doc/pipeline/steps/
+
+Agent per Stages
+    kondisi dimana kita membutuhkan agent yang berbeda di setiap stagenya, contoh buildnya menggunakan agent linux dan java11, lalu ketika deploy menggunakan agent linux dan java17
+
+Global Variable
+    saat membuat job secara manual, kita bisa menggunakan global environment variable seperti JOB_NAME, BUILD_NUMBER dll.
+    di pipeline pun bisa, dengan melihat pipeline-syntax Global.
+        - env (variabel lingkungan global yang tersedia pada setiap build. Bisa diakses dari semua stage)
+        - currentBuild (mengacu pada build/eksekusi/stage pipeline saat ini)
+    rujukan: JENKINS_URL/job/JOB_NAME/pipeline-syntax/globals
+
+Environment
+    jika kita menambahkan environment baru di dalam pipeline, maka semua stages bisa mendapatkan nilai dari env tersebut.
+    jika menambahkannya didalam stage, maka hanya bisa mendapatkan di stage tersebut.
+    analoginya samakan dengan scope Global Variable dan Local Variable.
+
+Credential
+dalam environment terdapat perintah khusus bernama credentials(), yang bisa digunakan untuk mengambil data dari Jenkins credential.
+Tidak semua jenis credential didukung, hanya beberapa saja.
+jika
+    CredentialType:
+    credial mengambil data menggunakan ID
+    - Secret text = secara otomatis variable berisi value dari secret text
+    - Secret File = secara otomatis variable berisi file secret temp yang akan dihapus ketika pipeline telah dilakukan.
+    - Username Password = secara otomatis variable berisi data username:password
+    - SSH with privkey = secara otomatis variable berisi lokasi file ssh yang sifatnya temp, dan akan dihapus keitka pipeline telah dilakukan.
+
+Options
+opsi konfigurasi pipeline seperti durasi maksimal, penghentian/abort pipeline, dll.
+rujukan: https://www.jenkins.io/doc/book/pipeline/syntax/#options
+
+Parameters
+parameter yang akan di input oleh user akan otomatis disimpan dalam global variable, dengan cara {params.NamaParam}
+type parameter:
+    - string = tipe parameter string/text
+    - text = sama seperti string tapi multi line / text area.
+    - booleanParam = true or false
+    - choice = opsi yang sudah di tentukan (combo box)
+    - password = string yang sifatnya sensitif (credentials)
+
+Triggers
+perintah yang digunakan untuk melakukan run job secara otomatis.
+triggers type:
+    - cron: menjalankan berdasarkan ekspresi cron.
+    - pollSCM: ekspresi cron yang secara otomatis akan berjalan jika ada perubahan(changes) di SCM.
+    - upstream: menjalankan job, setelah job lain selesai (dengan result/hasil).
+        contoh, mempunyai 2 pipeline, jika pipeline pertama sukses, maka pipeline kedua akan tertrigger running.
+        rujukan: https://javadoc.jenkins-ci.org/hudson/model/Result.html
+
+Input
+sama dengan parameter, hanya saja input berjalan di level stage, jika stage mempunyai input maka stage tersebut tidak akan berjalan sampai user memasukan input tersebut.
+Input option:
+    - id = identifier dari input, defaultnya sama dengan nama stage.
+    - ok = text untuk tombol ok (jika input tidak ok maka stage akan dibatalkan).
+    - submitter = user yang boleh memasukan input, jika lebih dari satu user maka gunakan koma.
+    - parameters = bisa menggunakan type parameter (choice, dll). tetapi cara mengambil nilai paramnya langsung menyebutkan namanya seperti ENV variable.
+
+When
+perintah yang digunakan untuk menentukan pada kondisi apa sebuah stage di eksekusi, when memiliki detail kondisi yang beragam.
+rujukan: https://www.jenkins.io/doc/book/pipeline/syntax/#when
+
+Sequential Stage
+stages dalam stage, jika kita menggunakan stages di dalam stage maka otomatis tidak akan bisa menggunakan steps di dalam stages parent tersebut(this stage), hanya bisa menggunakan salah satu stage/step/matrix/parallel.
+dan stage tersebut akan dijalankan secara berurutan
+
+Parallel
+kondisi dimana stage berjalan bersamaan, cocok digunakan ketika stage tersebut tidak mengganggu stage lain.
+ketika menggunakan paralel maka tidak bisa menambahkan agent di stage parentnya/atasnya, harus menggunakan agent di setiap stage child.
+rujukan: https://www.jenkins.io/doc/book/pipeline/syntax/#parallel
+
+Matrix
+sama saja dengan paralel tetapi dengan matrix/array 2 dimensi.
+- Include Matrix Cell
+    sama seperti brace expansion {} di linux saat membuat file, jadi kita bisa paralel menjalankan secara matrix.
+    dalam linux contoh Episode{1..4}_Season{1..3}.mov (maka akan membuat 12 file) dan dijalan secara bersamaan.
+    hasil matrix diatas akan di simpan seperti env/parameter, dan kita panggil ketika akan membuat stage.
+    kondisi ini cocok ketika akan membuat stage setupos dan menentukan archos 32/64.
+- Exclude Matrix Cell
+    mengecualikan salah satu cell matrix, contoh diatas mengecualikan mac 32 (karena mac32 sudah tidak ada).
+rujukan: https://www.jenkins.io/doc/book/pipeline/syntax/#matrix
+
+Credential Binding (plugin)
+kondisi dimana kita ingin mengambil data credential hanya pada bagian tertentu dan tidak mengeksposnya ke env variable dan hanya berlaku di localscopenya saja.
+rujukan: https://www.jenkins.io/doc/pipeline/steps/credentials-binding/
+
+Multibranch Pipeline:
+dalam real project biasanya menggunakan multibranch, karena akan secara otomatis menscan branch yang ada, dan menghapus branch yang ada sesuai dengan branch di SCM.
+multibranch hanya bisa membuat pipeline dari Jenkinsfile tidak bisa membuat langsung dari Job.
+
+Pipeline Limitation:
+pipeline di Jeknins dijalan dalam sebuah Groovy Function, ada maksimal baris yang di perbolehkan pada Groovy Function.
+tidak disarankan membuat pipeline yang panjang dalam satu file.
+baiknya membuat Jenkin Shred Library; fitur dimana bisa membuat library pipeline yang bisa digunakan ulang atau dipisah-pisahkan kode pipelinenya.
+
+================[ END OBJECT-OBJECT PIPELINE ]================
